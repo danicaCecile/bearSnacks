@@ -200,12 +200,13 @@ public class LightGroup2D : MonoBehaviour
         }
     }
 
-    public void ChangeColor(float duration, List<Color> colors, bool resetColor)
+    public void ChangeColor(float duration, List<Color> colors, int numberOfTimes, bool resetColor)
     {
         foreach(List<LightController2D> lights in lightList.lightList)
         {
-            foreach(LightController2D light in lights) light.ChangeColor(duration, colors, resetColor);
+            foreach(LightController2D light in lights) light.ChangeColor(duration, colors, numberOfTimes, resetColor);
         }
+        
     }
 
     public void HorizontalBlinkCascade(float duration, int numberOfTimes)
@@ -218,13 +219,34 @@ public class LightGroup2D : MonoBehaviour
         StartCoroutine(VerticalBlinkCascadeCoroutine(duration, numberOfTimes));
     }
 
+    public void VerticalChangeColorCascade(float duration, List<Color> colors, int numberOfTimes, int lightGap, float targetIntensity)
+    {
+        StartCoroutine(VerticalChangeColorCascadeCoroutine(duration, colors, numberOfTimes, lightGap, targetIntensity));
+    }
+
+    public void VerticalChangeColorCascade(float duration, List<Color> colors, int numberOfTimes, int lightGap)
+    {
+        StartCoroutine(VerticalChangeColorCascadeCoroutine(duration, colors, numberOfTimes, lightGap, 1f));
+    }
+
+    public void HorizontalChangeColorCascade(float duration, List<Color> colors, int numberOfTimes, int lightGap, float targetIntensity)
+    {
+        StartCoroutine(HorizontalChangeColorCascadeCoroutine(duration, colors, numberOfTimes, lightGap, targetIntensity));
+    }
+
+    public void HorizontalChangeColorCascade(float duration, List<Color> colors, int numberOfTimes, int lightGap)
+    {
+        StartCoroutine(HorizontalChangeColorCascadeCoroutine(duration, colors, numberOfTimes, lightGap, 1f));
+    }
+
+
     public List<Color> testColors;
     public void BlinkTest()
     {
-        ChangeColor(5f, testColors, true);
+        VerticalChangeColorCascade(10f, testColors, 3, 2);
     }
 
-    private IEnumerator HorizontalBlinkCascadeCoroutine(float duration, int numberOfTimes)
+    public IEnumerator HorizontalBlinkCascadeCoroutine(float duration, int numberOfTimes)
     {
         float durationPerRound = duration/numberOfTimes;
         float pause = durationPerRound/lightList.count;
@@ -239,14 +261,14 @@ public class LightGroup2D : MonoBehaviour
         }
     }
 
-    private IEnumerator HorizontalBlinkCascadeCoroutineRecursive(LightController2D targetLight, float pause)
+    public IEnumerator HorizontalBlinkCascadeCoroutineRecursive(LightController2D targetLight, float pause)
     {
         targetLight.Blink(pause, 1);
         yield return new WaitForSeconds(pause);
         if(lightList.NextHorizontal(targetLight) != null) yield return StartCoroutine(HorizontalBlinkCascadeCoroutineRecursive(lightList.NextHorizontal(targetLight), pause));
     }
 
-    private IEnumerator VerticalBlinkCascadeCoroutine(float duration, int numberOfTimes)
+    public IEnumerator VerticalBlinkCascadeCoroutine(float duration, int numberOfTimes)
     {
         float durationPerRound = duration/numberOfTimes;
         float pause = durationPerRound/lightList.count;
@@ -261,14 +283,14 @@ public class LightGroup2D : MonoBehaviour
         }
     }
 
-    private IEnumerator VerticalBlinkCascadeCoroutineRecursive(LightController2D targetLight, float pause)
+    public IEnumerator VerticalBlinkCascadeCoroutineRecursive(LightController2D targetLight, float pause)
     {
         targetLight.Blink(pause, 1);
         yield return new WaitForSeconds(pause);
         if(lightList.NextVertical(targetLight) != null) yield return StartCoroutine(VerticalBlinkCascadeCoroutineRecursive(lightList.NextVertical(targetLight), pause));
     }
 
-    private IEnumerator HorizontalChangeColorCascadeCoroutine(float duration, List<Color> colors, int numberOfTimes, int lightGap)
+    public IEnumerator VerticalChangeColorCascadeCoroutine(float duration, List<Color> colors, int numberOfTimes, int lightGap, float targetIntensity)
     {
         float durationPerLightPerColor = duration/((colors.Count*numberOfTimes)+(lightGap*numberOfTimes-1));
         float durationPerRound = durationPerLightPerColor*(colors.Count+lightGap);
@@ -277,6 +299,7 @@ public class LightGroup2D : MonoBehaviour
         List<LightController2D> previousLights = new List<LightController2D>(); // init a list for the lights that have already been processed
         LightController2D currentLight = lightList.lightList[0][0]; // init the current light and set it to the first light
         previousLights.Add(currentLight);
+        currentLight.ChangeIntensity(durationPerLightPerColor, targetIntensity);
 
         int gapCounter = 0;
         bool isNextLightsStarted = false;
@@ -288,16 +311,19 @@ public class LightGroup2D : MonoBehaviour
             if(gapCounter == lightGap && isNextLightsStarted == false && numberOfTimes > 1)
             {
                 isNextLightsStarted = true;
-                StartCoroutine(HorizontalChangeColorCascadeCoroutine(duration-durationPerRound, colors, numberOfTimes-1, lightGap));
+                StartCoroutine(VerticalChangeColorCascadeCoroutine(duration-durationPerRound, colors, numberOfTimes-1, lightGap, targetIntensity));
             }
+
             if(previousLights.Count >= currentColors.Count) // if there are more previous lights than colors available...
             {
                 if(isNextLightsStarted == false) gapCounter++;
-                previousLights[previousLights.Count-1].ResetColor(durationPerLightPerColor); // reset the color of the last light to the original color
+
+                LightController2D lightToBeRemoved = previousLights[previousLights.Count-1];
+                lightToBeRemoved.ResetColor(durationPerLightPerColor); // reset the color of the last light to the original color
+                lightToBeRemoved.ResetIntensity(durationPerLightPerColor);
+                
                 previousLights.RemoveAt(previousLights.Count-1); // remove the last light from the previous lights
             }
-
-            LightController2D nextLight = lightList.NextHorizontal(currentLight); // set the next light to the next horizontal light
 
             int index = 0;
             foreach(LightController2D light in previousLights) // this loop updates the previous lights
@@ -309,16 +335,19 @@ public class LightGroup2D : MonoBehaviour
             yield return new WaitForSeconds(durationPerLightPerColor); // wait while the colors change
 
             if(currentColors.Count == 1) break;
+
+            LightController2D nextLight = lightList.NextVertical(currentLight); // set the next light to the next horizontal light
             if(nextLight == null) currentColors.RemoveAt(0);
             else 
             {
                 currentLight = nextLight;
                 previousLights.Insert(0, currentLight);
+                currentLight.ChangeIntensity(durationPerLightPerColor, targetIntensity);
             }
         }
     }
 
-    private IEnumerator VerticalChangeColorCascadeCoroutine(float duration, List<Color> colors, int numberOfTimes, int lightGap)
+    public IEnumerator HorizontalChangeColorCascadeCoroutine(float duration, List<Color> colors, int numberOfTimes, int lightGap, float targetIntensity)
     {
         float durationPerLightPerColor = duration/((colors.Count*numberOfTimes)+(lightGap*numberOfTimes-1));
         float durationPerRound = durationPerLightPerColor*(colors.Count+lightGap);
@@ -327,6 +356,7 @@ public class LightGroup2D : MonoBehaviour
         List<LightController2D> previousLights = new List<LightController2D>(); // init a list for the lights that have already been processed
         LightController2D currentLight = lightList.lightList[0][0]; // init the current light and set it to the first light
         previousLights.Add(currentLight);
+        currentLight.ChangeIntensity(durationPerLightPerColor, targetIntensity);
 
         int gapCounter = 0;
         bool isNextLightsStarted = false;
@@ -338,16 +368,19 @@ public class LightGroup2D : MonoBehaviour
             if(gapCounter == lightGap && isNextLightsStarted == false && numberOfTimes > 1)
             {
                 isNextLightsStarted = true;
-                StartCoroutine(VerticalChangeColorCascadeCoroutine(duration-durationPerRound, colors, numberOfTimes-1, lightGap));
+                StartCoroutine(HorizontalChangeColorCascadeCoroutine(duration-durationPerRound, colors, numberOfTimes-1, lightGap, targetIntensity));
             }
+
             if(previousLights.Count >= currentColors.Count) // if there are more previous lights than colors available...
             {
                 if(isNextLightsStarted == false) gapCounter++;
-                previousLights[previousLights.Count-1].ResetColor(durationPerLightPerColor); // reset the color of the last light to the original color
+
+                LightController2D lightToBeRemoved = previousLights[previousLights.Count-1];
+                lightToBeRemoved.ResetColor(durationPerLightPerColor); // reset the color of the last light to the original color
+                lightToBeRemoved.ResetIntensity(durationPerLightPerColor);
+                
                 previousLights.RemoveAt(previousLights.Count-1); // remove the last light from the previous lights
             }
-
-            LightController2D nextLight = lightList.NextVertical(currentLight); // set the next light to the next horizontal light
 
             int index = 0;
             foreach(LightController2D light in previousLights) // this loop updates the previous lights
@@ -359,11 +392,14 @@ public class LightGroup2D : MonoBehaviour
             yield return new WaitForSeconds(durationPerLightPerColor); // wait while the colors change
 
             if(currentColors.Count == 1) break;
+
+            LightController2D nextLight = lightList.NextHorizontal(currentLight); // set the next light to the next horizontal light
             if(nextLight == null) currentColors.RemoveAt(0);
             else 
             {
                 currentLight = nextLight;
                 previousLights.Insert(0, currentLight);
+                currentLight.ChangeIntensity(durationPerLightPerColor, targetIntensity);
             }
         }
     }

@@ -36,11 +36,11 @@ public class LightController2D : MonoBehaviour
         StartCoroutine(ChangeIntensityCoroutine(duration, targetIntensity));
     }
 
-    public void ChangeColor(float duration, List<Color> colors, bool resetColor)
+    public void ChangeColor(float duration, List<Color> colors, int numberOfTimes, bool resetColor)
     {
         List<Color> newColors = new List<Color>(colors);
         if(resetColor == true) newColors.Add(defaultColor);
-        StartCoroutine(ChangeColorCoroutine(duration, newColors));
+        StartCoroutine(ChangeColorCoroutine(duration, newColors, numberOfTimes));
     }
 
     public void ChangeColor(float duration, Color color)
@@ -103,16 +103,19 @@ public class LightController2D : MonoBehaviour
             yield return null;
         }
 
-        light.color = targetColor; 
+        light.color = targetColor;
     }
 
-    private IEnumerator ChangeColorCoroutine(float duration, List<Color> colors)
+    private IEnumerator ChangeColorCoroutine(float duration, List<Color> colors, int numberOfTimes)
     {
-        float shiftDuration = duration/colors.Count;
+        float durationPerLight = duration/(colors.Count*numberOfTimes);
+        float durationThisRound = colors.Count*durationPerLight;
 
         for (int i = 0; i < colors.Count; i++)
         {
-            yield return StartCoroutine(ChangeColorCoroutine(shiftDuration, colors[i]));
+            yield return StartCoroutine(ChangeColorCoroutine(durationPerLight, colors[i]));
         }
+
+        if(numberOfTimes != 1) StartCoroutine(ChangeColorCoroutine(duration-durationThisRound, colors, numberOfTimes-1));
     }
 }

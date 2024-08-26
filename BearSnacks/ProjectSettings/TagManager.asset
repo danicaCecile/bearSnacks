@@ -53,6 +53,9 @@ TagManager:
   - name: Front
     uniqueID: 1354065543
     locked: 0
+  - name: Light Ignore
+    uniqueID: 779099805
+    locked: 0
   - name: Posters
     uniqueID: 203546051
     locked: 0
