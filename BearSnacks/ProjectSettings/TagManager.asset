@@ -59,3 +59,9 @@ TagManager:
   - name: Posters
     uniqueID: 203546051
     locked: 0
+  - name: UI Background
+    uniqueID: 775890243
+    locked: 0
+  - name: UI
+    uniqueID: 2758527291
+    locked: 0

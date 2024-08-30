@@ -4,12 +4,7 @@ using UnityEngine;
 
 public class ScreenEmote : MonoBehaviour
 {
-    public float movementAmount = 1f;
-    public float speed = 1f;
     public float emotePause = 1f;
-
-    private Vector3 originalPosition;
-    private bool isBobbing = true;
 
     public List<Sprite> bigEmotes = new List<Sprite>();
     private Sprite bigDefaultSprite;
@@ -22,19 +17,8 @@ public class ScreenEmote : MonoBehaviour
 
     void Start()
     {
-        originalPosition = transform.position;
-        StartCoroutine(BobbingCoroutine());
         bigDefaultSprite = bigSpriteRenderer.sprite;
         smallDefaultSprite = smallSpriteRenderer.sprite;
-    }
-
-    void Update()
-    {
-        if (isBobbing)
-        {
-            float newY = originalPosition.y + Mathf.Sin(Time.time * speed) * movementAmount;
-            transform.position = new Vector3(originalPosition.x, newY, originalPosition.z);
-        }
     }
 
     public void EmoteTest()
@@ -53,15 +37,5 @@ public class ScreenEmote : MonoBehaviour
 
         bigSpriteRenderer.sprite = bigDefaultSprite;
         smallSpriteRenderer.sprite = smallDefaultSprite;
-    }
-
-    private IEnumerator BobbingCoroutine()
-    {
-        while (isBobbing)
-        {
-            float newY = originalPosition.y + Mathf.Sin(Time.time * speed) * movementAmount;
-            transform.position = new Vector3(originalPosition.x, newY, originalPosition.z);
-            yield return null;
-        }
     }
 }
