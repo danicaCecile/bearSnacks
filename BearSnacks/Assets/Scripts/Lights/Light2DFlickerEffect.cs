@@ -20,6 +20,12 @@ public class LightFlicker2D : MonoBehaviour
         StartCoroutine(Flicker());
     }
 
+    void OnEnable()
+    {
+        light = GetComponent<UnityEngine.Rendering.Universal.Light2D>();
+        StartCoroutine(Flicker());
+    }
+
     private IEnumerator Flicker()
     {
         while(isActive)
