@@ -10,8 +10,9 @@ public class VendingDisplay : MonoBehaviour
 
     void Start()
     {
-        spriteRenderer = renderer.GetComponent<SpriteRenderer>();
-        overlayAnimator = overlay.GetComponent<Animator>();
+        spriteRenderer = transform.Find("Renderer").GetComponent<SpriteRenderer>();
+
+        overlayAnimator = transform.Find("Overlay").GetComponent<Animator>();
 
         spriteRenderer.sprite = defaultSprite;
         screenLight.gameObject.SetActive(false);
@@ -20,6 +21,9 @@ public class VendingDisplay : MonoBehaviour
         animationUtils.animator = overlayAnimator;
 
         lightStartScale = screenLight.localScale;
+
+        bubble = transform.parent.transform.parent.transform.parent.transform.parent.GetComponent<Bubble>();
+        bubble.onClose.AddListener(Off);
     }
 
     void OnDisable()
@@ -77,7 +81,6 @@ public class VendingDisplay : MonoBehaviour
     /*-------------------- Part 1: Handles displaying pictures and text on the display ----------------------------*/
     public List<Sprite> displayOptions;
     public Sprite defaultSprite;
-    public GameObject renderer;
     private SpriteRenderer spriteRenderer;
 
     private UnityEvent DisplayRandomEvent;
@@ -110,11 +113,12 @@ public class VendingDisplay : MonoBehaviour
         isDisplaying = false;
     }
 
-    /*-------------------- Handles turning display on and off  ----------------------------*/
-    public GameObject overlay;
+    /*-------------------- Part 2: Handles turning display on and off  ----------------------------*/
     private Animator overlayAnimator;
 
     private bool isOn = false;
+
+    private Bubble bubble;
 
     public void On()
     {
@@ -127,6 +131,10 @@ public class VendingDisplay : MonoBehaviour
     private IEnumerator OnCoroutine()
     {
         overlayAnimator.SetTrigger("On");
+        
+        yield return StartCoroutine(animationUtils.SetAnimationLength());
+        bubble.closeDelay = animationUtils.length;
+
         yield return StartCoroutine(AnimateLightOn());
         yield return StartCoroutine(animationUtils.WaitForAnimationEnd());
     }
@@ -144,6 +152,7 @@ public class VendingDisplay : MonoBehaviour
         yield return StartCoroutine(animationUtils.WaitForAnimationEnd());
         screenLight.gameObject.SetActive(false);
         isOn = false;
+        bubble.closeDelay = 0f;
     }
 
     public void Toggle()
@@ -152,7 +161,7 @@ public class VendingDisplay : MonoBehaviour
         else On();
     }
 
-    /*----------------------------- Handle stuff about lights ---------------------------------------*/
+    /*----------------------------- Part 3: Handle stuff about lights ---------------------------------------*/
     public Transform screenLight;
     public float startingLightWidth = 0.03f;
 

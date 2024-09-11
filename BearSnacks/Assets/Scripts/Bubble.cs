@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Bubble : MonoBehaviour
 {
@@ -14,15 +15,21 @@ public class Bubble : MonoBehaviour
 
     private AnimationUtils animationUtils;
 
+    public UnityEvent onOpen;
+    public UnityEvent onClose;
+
+    [HideInInspector]
+    public float closeDelay = 0.5f;
+    
     void Start()
     {
         Animator[] animatorsArray = bubbleParent.GetComponentsInChildren<Animator>(true);
         animators.AddRange(animatorsArray);
 
-        bubbleParent.SetActive(false);
-
         animationUtils = gameObject.AddComponent<AnimationUtils>();
         animationUtils.animator = animators[animators.Count-1];
+
+        bubbleParent.SetActive(false);
     }
 
     public void Open()
@@ -30,7 +37,8 @@ public class Bubble : MonoBehaviour
         if(isOpen == true || animationUtils.isAnimating == true) return;
         bubbleParent.SetActive(true);
         foreach(Animator animator in animators) animator.SetTrigger("Open");
-
+        onOpen.Invoke();
+        
         StartCoroutine(OpenCoroutine());
     }
 
@@ -44,13 +52,15 @@ public class Bubble : MonoBehaviour
     public void Close()
     {
         if(isOpen == false || animationUtils.isAnimating == true) return;
-        foreach(Animator animator in animators) animator.SetTrigger("Close");
-
+        onClose.Invoke();
         StartCoroutine(CloseCoroutine());
     }
 
     private IEnumerator CloseCoroutine()
     {
+        yield return new WaitForSeconds(closeDelay);
+        
+        foreach(Animator animator in animators) animator.SetTrigger("Close");
         yield return StartCoroutine(animationUtils.WaitForAnimationEnd());
 
         bubbleParent.SetActive(false);
